@@ -2,8 +2,8 @@
 accessionNumFile: "config/NCBI_WGS_accessionNumbers.txt"
 
 # profile HMMs for dsrAB
-dsrAB_bact_HMMProfile: "config/profileHMM_bacteria_aminoacid.phmm"
-dsrAB_arch_HMMProfile: "config/profileHMM_archaea_aminoacid.phmm"
+dsrAB_bact_HMMProfile: "config/profileHMM_bacteria_aa.phmm"
+dsrAB_arch_HMMProfile: "config/profileHMM_archaea_aa.phmm"
 
 # reference dsrAB files
 refMSA: "config/dsrAB_referenceSequences_nucleotide.fasta"
@@ -15,15 +15,13 @@ refListToSelect: "config/ref_leaves_to_select.txt"
 blastDB: "workflow/out/sequenceSimilarity/db"
 
 # raxml input files
-paramName: "[date]"
-binaryModelParams: "workflow/out/modelParams/RAxML_binaryModelParameters."
-refTree: "workflow/out/modelParams/RAxML_result."
-raxmlOutputFileExtension: "raxml"
+treeFileExtension: Christensen2024
 
 scriptsDir: "workflow/scripts"
 
 # conda environments -- requires anaconda. yaml files were extracted from MacOS. Other systems may require different
-# dependencies, so if you're not running on MacOS, please install SRA toolkit, Prodigal, and HMMER with anaconda.
+# dependencies, so if you're not running on MacOS, please install SRA toolkit, Prodigal, and HMMER. MAFFT should be
+# configured from anaconda or installed locally, which I have done.
 sraEnv: "../../workflow/envs/sra-tools.yml"
 prodigalEnv: "../../workflow/envs/prodigal_local.yml"
 hmmerEnv: "../../workflow/envs/hmmer_local.yml"

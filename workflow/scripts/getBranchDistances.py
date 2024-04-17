@@ -17,9 +17,12 @@ import json
 
 RESULT_TREE = sys.argv[1]
 QUERY_INFO = sys.argv[2]
-DISTANCES_INFO_CSV = sys.argv[3]
-DISTANCES_INFO_JSON = sys.argv[4]
+Anantharaman2018_SEQ_QUERY_ID_FILE = sys.argv[3]
+DISTANCES_INFO_CSV = sys.argv[4]
+DISTANCES_INFO_JSON = sys.argv[5]
 
+# read in Anantharaman2018 file as list of query names for Anantharaman2018 seqs:
+Anantharaman2018_seq_query_ids = open(Anantharaman2018_SEQ_QUERY_ID_FILE).read().splitlines()
 
 def main():
     tree = read_in_tree(RESULT_TREE)
@@ -42,7 +45,12 @@ def get_distances(tree):
     query_list = []
     for node in tree:
         if node.is_leaf():
-            if "QUERY" in node.name:
+            if ("QUERY" in node.name) & (node.name not in Anantharaman2018_seq_query_ids):
+                """
+                changing so that we only get branch distances for queries that do NOT include Anantharaman2018 seqs, 
+                as Anantharaman2018 seqs will be considered reference sequences (even though we fragment inserted them 
+                into Mueller2015's tree)
+                """
                 query_list.append(node.name)
 
     # make list of ref names in tree
@@ -50,6 +58,12 @@ def get_distances(tree):
     for node in tree:
         if node.is_leaf():
             if "QUERY" not in node.name:
+                ref_list.append(node.name)
+            elif ("QUERY" in node.name) & (node.name in Anantharaman2018_seq_query_ids):
+                """
+                changing so that Anantharaman2018 seqs are included in reference sequences, so that query sequences can be 
+                measured to them as well as Mueller2015's ref sequences
+                """
                 ref_list.append(node.name)
 
     closest_rleaf_dict = {}
@@ -94,6 +108,7 @@ def add_dist_info(dist_dict, query_info, output_f):
                 query_name = "QUERY___" + row["sample_name"]
 
                 if query_name in dist_dict:
+
                     row["closest_ref"] = dist_dict[query_name]["closest_ref"]
 
                     row["dist"] = dist_dict[query_name]["dist"]
