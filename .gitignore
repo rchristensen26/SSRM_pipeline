@@ -4,3 +4,4 @@ lib
 pyvenv.cfg
 .idea/
 .DS_*tore
+.Rproj.user

@@ -1,0 +1,123 @@
+---
+title: "get_closest_single_ref"
+output: html_document
+date: "2024-04-18"
+---
+
+# load packages
+```{r}
+library(readr)
+library(tidyverse)
+
+closestRefInfo_allScoreThresholdHits_wSingleClosestRef <- read_csv("../workflow/out/treeInfo/closestRefInfo_allScoreThresholdHits_wSingleClosestRef.csv")
+
+na_values <- c("missing", 
+               "Missing", 
+               "not collected", 
+               "Unknown", 
+               "unknown", 
+               "not applicable", 
+               "not determined", 
+               "NA", 
+               "")
+
+biosample_metadata <- read.csv("../config/metadata/NCBI_biosample_metadata.csv", na.strings = na_values)
+
+project_accessions <- na.omit(read_csv("../config/metadata/NCBI_biosample_project_accessions.csv", guess_max = 70000))
+
+infant_study <- read_csv("PRJEB26925_infantStudy_biosampleAccessions.txt", 
+    col_names = FALSE)
+```
+
+# correct reported project accession for samples in infant study PRJEB26925
+```{r}
+
+infant_study <- infant_study %>%
+  mutate(accession = paste("SAMN0", X1, sep = ""))
+
+infant_study_acc <- infant_study$accession
+
+project_accessions <- project_accessions %>%
+  mutate(project_accession = if_else(sample_id %in% infant_study_acc, 
+                                     "PRJEB26925", 
+                                     project_accession))
+
+write.csv(project_accessions, "../config/metadata/NCBI_biosample_project_accessions.csv")
+```
+
+# mutate df to hits by biosample and bind to metadata
+```{r}
+empty_as_na <- function(x){
+    if("factor" %in% class(x)) x <- as.character(x) ## since ifelse wont work with factors
+    ifelse(as.character(x)!="", x, NA)
+}
+                     
+hits_by_sample_metadata <- closestRefInfo_allScoreThresholdHits_wSingleClosestRef %>%
+  filter(SRM_present == TRUE, distance < 2.5 | is.na(distance)) %>%
+  select(biosample_id, single_closest_ref) %>%
+  distinct() %>%
+  mutate(present = 1) %>%
+  pivot_wider(names_from = single_closest_ref, values_from = present, values_fill = 0) %>%
+  mutate(total_otu_present = rowSums(across(where(is.numeric)))) %>%
+  full_join(., biosample_metadata, by = join_by(biosample_id == sample_id)) %>% 
+  left_join(., project_accessions, by = join_by(biosample_id == sample_id)) %>%
+  mutate_at(vars(Bilophila_sp._4_1_30__BilSpec3:total_otu_present), ~replace_na(., 0)) %>%
+  mutate_each(funs(empty_as_na))
+
+```
+
+# make standardized age column
+```{r}
+# manually verified these projects are on infants and reported ages are in days
+project_day_ages <- c("PRJNA489090", "PRJEB26925")
+
+get_age <- function(age_value) {
+  age <- ifelse(is.na(age_value), 
+                NA, 
+                ifelse((grepl("year", age_value) | grepl("Y", age_value) | grepl("y", age_value)) & !(grepl("-", age_value)) & !(grepl("day", age_value)), 
+                       as.numeric(gsub("[^0-9.-]", "", age_value)), 
+                       
+                       ifelse(grepl("day", age_value) | grepl("D", age_value), 
+                              as.numeric(gsub("[^0-9.-]", "", age_value)) / 365, 
+                              
+                              ifelse((grepl("month", age_value) | grepl("M", age_value) | grepl("m", age_value)) & !(grepl("year", age_value)), 
+                                     as.numeric(gsub("[^0-9.-]", "", age_value)) / 12, 
+                                     
+                                     ifelse(!is.na(as.numeric(age_value)), 
+                                            as.numeric(age_value), 
+                                            NA)
+                              )
+                       )
+                )
+  )
+  return(age)
+}
+
+
+
+hits_by_sample_metadata <- hits_by_sample_metadata %>%
+  mutate(standardize_age = case_when(!is.na(age) & age != "7 days" ~ as.numeric(age), 
+                                     is.na(age) & !is.na(host.age) & !(project_accession %in% project_day_ages) ~ get_age(host.age),
+                                     is.na(age) & !is.na(host.age) & project_accession %in% project_day_ages ~ as.numeric(host.age) / 365, 
+                                     !is.na(host_age..months.) ~ as.numeric(host_age..months.) / 12 ))
+
+# manually set standardized ages for exceptions that i can't be bothered to write in the function
+hits_by_sample_metadata$standardize_age[hits_by_sample_metadata$host.age == "1 year and 3 months"] <- 1
+hits_by_sample_metadata$standardize_age[hits_by_sample_metadata$age == "7 days"] <- 7/365
+```
+
+# make sex age column
+```{r}
+View(table(hits_by_sample_metadata$sex))
+View(table(hits_by_sample_metadata$host.sex))
+
+hits_by_sample_metadata <- hits_by_sample_metadata %>%
+  mutate(standardize_sex = case_when(!is.na(sex) ~ sex, 
+                                     !is.na(host.sex) & host.sex != "pooled male and female" ~ host.sex, 
+                                     !is.na(host.sex) & host.sex == "pooled male and female" ~ NA))
+```
+
+write.csv(hits_by_sample_metadata, "hits_by_sample_metadata.csv")
+
+
+

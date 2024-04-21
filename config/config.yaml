@@ -1,5 +1,7 @@
 # Input file with WGS accession numbers downloaded in this study.
 accessionNumFile: "config/NCBI_WGS_accessionNumbers.txt"
+# Metadata associated with each Biosample from NCBI
+biosampleMetadata: "config/metadata/NCBI_biosample_metadata.json"
 
 # profile HMMs for dsrAB
 dsrAB_bact_HMMProfile: "config/profileHMM_bacteria_aa.phmm"

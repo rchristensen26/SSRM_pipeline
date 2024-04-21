@@ -54,11 +54,12 @@ rule all:
         join(join(config["raxmlOutputDir"],"RAxML_labelledTree."), config["treeFileExtension"]),
         join(join(config["raxmlOutputDir"],"RAxML_originalLabelledTree."), config["treeFileExtension"]),
         join(join(join(config["raxmlOutputDir"],"RAxML_portableTree.",config["treeFileExtension"])), ".jplace"),
-        # calculate branch distances between hit sequences and reference sequences
+        # calculate branch distances between hit sequences and reference sequences and other tree info
         "workflow/out/treeInfo/Anantharaman2018_queryIDs_inTree.txt",
         "workflow/out/treeInfo/queryDistanceInfo.csv",
-        "workflow/out/treeInfo/queryDistanceInfo.json"
-
+        "workflow/out/treeInfo/queryDistanceInfo.json",
+        "workflow/out/treeInfo/closestRefInfo_allScoreThresholdHits.csv",
+        "workflow/out/treeInfo/closestRefList.txt",
 
 include:
     "workflow/rules/downloadMetagenomicData.smk",

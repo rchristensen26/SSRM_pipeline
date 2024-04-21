@@ -1,0 +1,43 @@
+---
+title: "get_closest_single_ref"
+output: html_document
+date: "2024-04-18"
+---
+
+# load packages
+```{r}
+library(readr)
+library(tidyverse)
+
+closestRefInfo_allScoreThresholdHits <- read_csv("../workflow/out/treeInfo/closestRefInfo_allScoreThresholdHits.csv")
+```
+
+# For hit sequences with multiple "closest ref sequences", select a single reference sequence as the representetive. Choose the first of Mueller2015's sequences in the list. If none of Mueller2015's sequences are in the closest ref list, choose the first of Anantharaman2018's sequences.
+```{r}
+get_single_ref <- function(ref_list) {
+  ref_list <- gsub("\\]", "", ref_list)
+  ref_list <- gsub("\\[", "", ref_list)
+  ref_list <- gsub(" ", "", ref_list)
+  ref_list <- gsub("\\'", "", ref_list)
+  ref_list <- strsplit(ref_list, ",")[[1]]
+  
+  # check if all of the closest ref sequences are Anantharaman2018 seqs
+  if (length(grep("QUERY", ref_list)) == length(ref_list)) {
+    # single ref is assigned as first seq in list
+    return(ref_list[1])
+  }
+  
+  # case if there is a non-Anantharaman2018 seq in the list of closest_ref
+  if (length(grep("QUERY", ref_list)) != length(ref_list)) {
+    single_ref_index <- grep("QUERY", ref_list, invert = T)[[1]]
+    return(ref_list[single_ref_index])
+  }
+}
+
+closestRefInfo_allScoreThresholdHits_wSingleClosestRef <- closestRefInfo_allScoreThresholdHits %>%
+  rowwise() %>%
+  mutate(single_closest_ref = get_single_ref(closest_ref), na.rm = T)
+
+write.csv(closestRefInfo_allScoreThresholdHits_wSingleClosestRef, "../workflow/out/treeInfo/closestRefInfo_allScoreThresholdHits_wSingleClosestRef.csv")
+```
+
