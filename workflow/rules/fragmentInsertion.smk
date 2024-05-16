@@ -15,7 +15,7 @@ rule IdentifyNovelSeqs:
         """
 
 # make MSA from our result msa (with hits and ref seqs) with Anantharaman2018's novel seqs
-rule runMAFFT:
+rule runMAFFT_2:
     input:
         hitsWithRefMSA=join(config["cleanHitsDir"],"compiled_dsrAB_scoreThreshold_noDups_msa_withRef_trimmedGaps.faa"),
         Anantharaman2018Seqs=join(config["cleanHitsDir"], "Anantharaman2018_dsrA_dsrB_noDups.faa")
@@ -46,7 +46,7 @@ rule runRAXML:
         refTree=join(join(config["modelParamsDir"], "RAxML_result."), config["treeFileExtension"])
     params:
         outputDir=config["raxmlOutputDir"],
-        fileExtension=config["raxmlOutputFileExtension"]
+        fileExtension=config["treeFileExtension"]
     output:
         join(join(config["raxmlOutputDir"], "RAxML_info."), config["treeFileExtension"]),
         join(join(config["raxmlOutputDir"], "RAxML_classification."), config["treeFileExtension"]),
